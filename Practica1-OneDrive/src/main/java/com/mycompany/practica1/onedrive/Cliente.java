@@ -3,6 +3,7 @@ package com.mycompany.practica1.onedrive;
 import java.io.*;
 import java.net.*;
 import java.util.Scanner;
+import javax.swing.JFileChooser;
 
 public class Cliente {
     public static void main(String[] args) {
@@ -10,6 +11,8 @@ public class Cliente {
             String dir = "127.0.0.1";
             Socket socketControl = new Socket(dir, 1234);
             Socket socketDatos = new Socket(dir, 1235);
+
+            File directorio = new File("./dataclient");// Ruta de directorio del cliente
 
             BufferedReader inControl = new BufferedReader(new InputStreamReader(socketControl.getInputStream()));
             PrintWriter outControl = new PrintWriter(socketControl.getOutputStream(), true);
@@ -29,14 +32,23 @@ public class Cliente {
                 System.out.print(">> ");
                 comando = in.nextLine();
 
-                if(!comando.equals("exit")){ //Verificar si el comando es exit
-                    switch(comando){ //Verificar si el comando es del cliente o del servidor
+                String[] comandos = comando.split(" ");
+
+                if(!comandos[0].equals("exit")){ //Verificar si el comando es exit
+                    switch(comandos[0]){ //Verificar si el comando es del cliente o del servidor
                         // Comandos del cliente
                         case "help":
                             imprimirComandos();
                             break;
                         case "lsc":
-                            listarArchivos();
+                            listarArchivos(directorio);
+                            break;
+                        case "upld":
+                            File archivo = new File(comandos[1]);
+                            if(archivo.exists()){
+                                
+                            }
+                            enviarArchivo(archivo, outDatos);
                             break;
                         default: //Comandos del servidor
                             outControl.println(comando);
@@ -91,8 +103,7 @@ public class Cliente {
         System.out.println("exit: Salir de la aplicación");
     }
 
-    private static void listarArchivos() {
-        File directorio = new File("./dataclient");
+    private static void listarArchivos(File directorio) {
         File[] elementos = directorio.listFiles();
         if (elementos != null) {
             for (File elemento : elementos) {
@@ -105,6 +116,10 @@ public class Cliente {
         }else{
             System.out.println("El directorio está vacío.");
         }
+    }
+
+    private static void enviarArchivo(File archivo, PrintWriter outDatos) {
+        System.out.println(archivo.getAbsolutePath());
     }
 
 }

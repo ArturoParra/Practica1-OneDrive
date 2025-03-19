@@ -3,7 +3,7 @@ package com.mycompany.practica1.onedrive;
 import java.net.ServerSocket;
 import java.io.*;
 import java.net.Socket;
-import java.net.StandardSocketOptions;
+import javax.swing.JFileChooser;
 
 public class Servidor {
     public static void main(String[] args) {
@@ -51,7 +51,6 @@ public class Servidor {
                 switch (comando) {
                     case "lss":
                         File directorio = new File("./dataserver");
-                        System.out.println(directorio.getAbsolutePath());
                         listarArchivos(directorio, outDatos);
                         outControl.println("Listando archivos...");
                         outDatos.println("END");// Marca de fin de la comunicación
