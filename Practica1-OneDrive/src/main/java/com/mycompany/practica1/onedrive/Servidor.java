@@ -42,7 +42,7 @@ public class Servidor {
             PrintWriter outControl = new PrintWriter(socketControl.getOutputStream(), true); //Para enviar datos
             BufferedReader inDatos = new BufferedReader(new InputStreamReader(socketDatos.getInputStream())); //Para recibir datos
             PrintWriter outDatos = new PrintWriter(socketDatos.getOutputStream(), true); //Para enviar datos
-
+            InputStream inDatos2 = socketDatos.getInputStream();
             String comando;
             while ((comando = inControl.readLine()) != null) {
                 System.out.println("Comando recibido: " + comando);
@@ -62,7 +62,7 @@ public class Servidor {
                         break;
                     case "upld":
                         outControl.println("Subiendo archivo...");
-                        recibirArchivo(inControl.readLine(), inDatos);
+                        recibirArchivo(inDatos2, "./dataserver", inControl.readLine());
                         outDatos.println("END");
                         break;
                     case "mkfiles":
@@ -112,9 +112,29 @@ public class Servidor {
         System.out.println("Enviando archivo... ");
     }
 
-    private static void recibirArchivo(String nombreArchivo, BufferedReader inDatos) {
-        //recibir un archivo
-        System.out.println("Recibiendo archivo... ");
+    private static void recibirArchivo(InputStream inDatos2, String rutaDestino, String nombreArchivo) {
+        File file = new File(rutaDestino, nombreArchivo);
+        System.out.println("Recibiendo archivo: " + file.getAbsolutePath());
+
+        try (DataInputStream dis = new DataInputStream(inDatos2);
+             FileOutputStream fos = new FileOutputStream(file);
+             BufferedOutputStream bos = new BufferedOutputStream(fos)) {
+
+            long tamanoArchivo = dis.readLong(); // Leer el tamaño del archivo primero
+            byte[] buffer = new byte[4096]; // Buffer de 4KB
+            int bytesLeidos;
+            long bytesRecibidos = 0;
+
+            while (bytesRecibidos < tamanoArchivo && (bytesLeidos = dis.read(buffer)) != -1) {
+                bos.write(buffer, 0, bytesLeidos);
+                bytesRecibidos += bytesLeidos;
+            }
+
+            bos.flush();
+
+        } catch (IOException e) {
+            System.err.println("Error al recibir el archivo: " + e.getMessage());
+        }
     }
 
 

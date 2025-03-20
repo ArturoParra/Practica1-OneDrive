@@ -18,6 +18,7 @@ public class Cliente {
             PrintWriter outControl = new PrintWriter(socketControl.getOutputStream(), true);
             BufferedReader inDatos = new BufferedReader(new InputStreamReader(socketDatos.getInputStream()));
             PrintWriter outDatos = new PrintWriter(socketDatos.getOutputStream(), true);
+            OutputStream outDatos2 = socketDatos.getOutputStream();
             if (socketControl.isConnected() && !socketControl.isClosed()) {
                 System.out.println("Conexión exitosa.");
             } else {
@@ -44,11 +45,30 @@ public class Cliente {
                             listarArchivos(directorio);
                             break;
                         case "upld":
-                            File archivo = new File(comandos[1]);
-                            if(archivo.exists()){
-                                
+                            if(comandos.length > 1){ // Verifica si el comando recibió el resto de argumentos
+                                File archivo = new File(directorio, comandos[1]); // Se crea la referencia al archivo dentro de la ruta de carpeta de archivos del cliente
+                                if(archivo.exists() && archivo.isFile()){ // Verifica si existe el archivo y si es un archivo
+                                    System.out.println("El archivo existe");
+                                    enviarArchivo(archivo, outDatos2, outControl, comandos[0]);
+                                }else{
+                                    System.out.println("El archivo no existe en este directorio");
+                                    break;
+                                }
+                                String respuesta = inControl.readLine();
+                                if(respuesta != null){ //Respuesta del socket de control
+                                    System.out.println(respuesta);
+                                }
+                                String respuesta2;
+                                while ((respuesta2 = inDatos.readLine()) != null) {
+                                    if (respuesta2.equals("END")) { //Verifica si ya son todos los datos para que el socket no se bloquee
+                                        System.out.println("Se recibe el end");
+                                        break;
+                                    }
+                                    System.out.println(respuesta2);
+                                }
+                            }else{
+                                System.out.println("Comando incompleto: Ingrese el nombre del archivo a subir");
                             }
-                            enviarArchivo(archivo, outDatos);
                             break;
                         default: //Comandos del servidor
                             outControl.println(comando);
@@ -56,7 +76,7 @@ public class Cliente {
                             if(respuesta != null){ //Respuesta del socket de control
                                 System.out.println(respuesta);
                             }
-                            if (comando.equals("lss") || comando.equals("dwld") || comando.equals("upld")) { //Respuesta del socket de datos
+                            if (comando.equals("lss") || comando.equals("dwld")) { //Respuesta del socket de datos
                                 String respuesta2;
                                 while ((respuesta2 = inDatos.readLine()) != null) {
                                     if (respuesta2.equals("END")) { //Verifica si ya son todos los datos para que el socket no se bloquee
@@ -118,8 +138,30 @@ public class Cliente {
         }
     }
 
-    private static void enviarArchivo(File archivo, PrintWriter outDatos) {
-        System.out.println(archivo.getAbsolutePath());
+    private static void enviarArchivo(File archivo, OutputStream outDatos2, PrintWriter outControl, String comando) {
+        try {
+            outControl.println(comando); // Notificar al servidor que se enviará un archivo
+            outControl.println(archivo.getName());
+            outControl.flush();
+
+            // Enviar el tamaño del archivo al servidor
+            DataOutputStream dos = new DataOutputStream(outDatos2);
+            dos.writeLong(archivo.length());  // 💡 Primero enviamos el tamaño
+            dos.flush();
+
+            // Enviar los datos del archivo
+            FileInputStream fis = new FileInputStream(archivo);
+            byte[] buffer = new byte[4096]; // 4 KB
+            int bytesLeidos;
+            while ((bytesLeidos = fis.read(buffer)) != -1) {
+                dos.write(buffer, 0, bytesLeidos);
+            }
+
+            System.out.println("Archivo enviado con éxito.");
+
+        } catch (IOException e) {
+            System.err.println("Error al enviar el archivo: " + e.getMessage());
+        }
     }
 
 }
