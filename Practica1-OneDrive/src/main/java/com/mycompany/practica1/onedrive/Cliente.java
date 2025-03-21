@@ -19,6 +19,7 @@ public class Cliente {
             BufferedReader inDatos = new BufferedReader(new InputStreamReader(socketDatos.getInputStream()));
             PrintWriter outDatos = new PrintWriter(socketDatos.getOutputStream(), true);
             OutputStream outDatos2 = socketDatos.getOutputStream();
+            DataInputStream inDatos2 = new DataInputStream(socketDatos.getInputStream());
             if (socketControl.isConnected() && !socketControl.isClosed()) {
                 System.out.println("Conexión exitosa.");
             } else {
@@ -45,6 +46,7 @@ public class Cliente {
                             listarArchivos(directorio);
                             break;
                         case "upld":
+                            System.out.println("Socket conectado: " + socketDatos.isConnected());
                             if(comandos.length > 1){ // Verifica si el comando recibió el resto de argumentos
                                 File archivo = new File(directorio, comandos[1]); // Se crea la referencia al archivo dentro de la ruta de carpeta de archivos del cliente
                                 if(archivo.exists() && archivo.isFile()){ // Verifica si existe el archivo y si es un archivo
@@ -78,7 +80,7 @@ public class Cliente {
                             }
                             if (comando.equals("lss") || comando.equals("dwld")) { //Respuesta del socket de datos
                                 String respuesta2;
-                                while ((respuesta2 = inDatos.readLine()) != null) {
+                                while ((respuesta2 = inControl.readLine()) != null) {
                                     if (respuesta2.equals("END")) { //Verifica si ya son todos los datos para que el socket no se bloquee
                                         break;
                                     }
@@ -146,7 +148,7 @@ public class Cliente {
 
             // Enviar el tamaño del archivo al servidor
             DataOutputStream dos = new DataOutputStream(outDatos2);
-            dos.writeLong(archivo.length());  // 💡 Primero enviamos el tamaño
+            dos.writeLong(archivo.length());
             dos.flush();
 
             // Enviar los datos del archivo
@@ -159,8 +161,9 @@ public class Cliente {
 
             System.out.println("Archivo enviado con éxito.");
 
+
         } catch (IOException e) {
-            System.err.println("Error al enviar el archivo: " + e.getMessage());
+            //System.err.println("Error al enviar el archivo: " + e.getMessage());
         }
     }
 

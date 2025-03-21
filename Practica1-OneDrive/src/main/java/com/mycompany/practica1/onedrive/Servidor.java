@@ -1,5 +1,6 @@
 package com.mycompany.practica1.onedrive;
 
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.io.*;
 import java.net.Socket;
@@ -9,13 +10,16 @@ public class Servidor {
     public static void main(String[] args) {
         try {
             ServerSocket sControl = new ServerSocket(1234);
+            sControl.setReuseAddress(true);
             ServerSocket sDatos = new ServerSocket(1235);
+            sDatos.setReuseAddress(true);
+
 
             // Configuración de opciones del socket
             //sControl.setOption(StandardSocketOptions.SO_REUSEADDR, true);// Permite reutilizar el puerto
-            sControl.setReuseAddress(true);
+
             //sDatos.setOption(StandardSocketOptions.SO_REUSEADDR, true);// Permite reutilizar el puerto
-            sDatos.setReuseAddress(true);
+
             System.out.println("Servidor de control iniciado en el puerto: " + sControl.getLocalPort());
             System.out.println("Servidor de datos iniciado en el puerto: " + sDatos.getLocalPort());
 
@@ -24,8 +28,10 @@ public class Servidor {
                 Socket socketControl = sControl.accept();
                 System.out.println("Cliente conectado: " + socketControl.getInetAddress());
 
-                // Aceptar conexión del cliente en el socket de datos
                 Socket socketDatos = sDatos.accept();
+
+                // Aceptar conexión del cliente en el socket de datos
+
                 System.out.println("Conexión de datos establecida");
 
                 // Procesar comandos del cliente
@@ -43,6 +49,7 @@ public class Servidor {
             BufferedReader inDatos = new BufferedReader(new InputStreamReader(socketDatos.getInputStream())); //Para recibir datos
             PrintWriter outDatos = new PrintWriter(socketDatos.getOutputStream(), true); //Para enviar datos
             InputStream inDatos2 = socketDatos.getInputStream();
+
             String comando;
             while ((comando = inControl.readLine()) != null) {
                 System.out.println("Comando recibido: " + comando);
@@ -51,9 +58,10 @@ public class Servidor {
                 switch (comando) {
                     case "lss":
                         File directorio = new File("./dataserver");
-                        listarArchivos(directorio, outDatos);
                         outControl.println("Listando archivos...");
-                        outDatos.println("END");// Marca de fin de la comunicación
+                        listarArchivos(directorio, outControl);
+                        //mandar el socket a listarArchivos
+                        outControl.println("END");// Marca de fin de la comunicación
                         break;
                     case "dwld":
                         outControl.println("Descargando archivo...");
@@ -62,6 +70,7 @@ public class Servidor {
                         break;
                     case "upld":
                         outControl.println("Subiendo archivo...");
+                        System.out.println("Socket conectado: " + socketDatos.isConnected() + socketControl.getInetAddress());
                         recibirArchivo(inDatos2, "./dataserver", inControl.readLine());
                         outDatos.println("END");
                         break;
@@ -94,8 +103,14 @@ public class Servidor {
                 for (File elemento : elementos) {
                     if (elemento.isDirectory()) {
                         outDatos.println("Directorio: " + elemento.getName());
+                        if (outDatos.checkError()) {
+                            System.out.println("Error al escribir en el socket de datos");
+                        }
                     } else {
                         outDatos.println("Archivo: " + elemento.getName());
+                        if (outDatos.checkError()) {
+                            System.out.println("Error al escribir en el socket de datos");
+                        }
                     }
                 }
             }else{
@@ -115,7 +130,6 @@ public class Servidor {
     private static void recibirArchivo(InputStream inDatos2, String rutaDestino, String nombreArchivo) {
         File file = new File(rutaDestino, nombreArchivo);
         System.out.println("Recibiendo archivo: " + file.getAbsolutePath());
-
         try (DataInputStream dis = new DataInputStream(inDatos2);
              FileOutputStream fos = new FileOutputStream(file);
              BufferedOutputStream bos = new BufferedOutputStream(fos)) {
@@ -133,7 +147,7 @@ public class Servidor {
             bos.flush();
 
         } catch (IOException e) {
-            System.err.println("Error al recibir el archivo: " + e.getMessage());
+            //System.err.println("Error al recibir el archivo: " + e.getMessage());
         }
     }
 
