@@ -106,7 +106,6 @@ public class Servidor {
     }
 
     private static void enviarArchivo(DataOutputStream outControl, DataInputStream inControl, DataOutputStream outDatos, String rutaBase) {
-
         try{
             String nombreArchivo = inControl.readUTF();
             System.out.println("Nombre de archivo:" + nombreArchivo);
@@ -130,9 +129,6 @@ public class Servidor {
             } else {
                 System.out.println("El archivo no existe o no es válido.");
             }
-
-
-
         } catch (IOException e) {
             //System.out.println("Error al enviar el archivo: " + e.getMessage());
         }
@@ -148,7 +144,6 @@ public class Servidor {
 
             long tamanoArchivo = inControl.readLong();
             System.out.println("Tamaño del archivo: " + tamanoArchivo);
-
 
             FileOutputStream fos = new FileOutputStream(file);
             BufferedOutputStream bos = new BufferedOutputStream(fos);
