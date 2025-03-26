@@ -1,6 +1,10 @@
 import java.io.*;
 import java.net.*;
 import java.util.Scanner;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+import java.util.zip.ZipInputStream;
+
 
 public class Cliente {
     public static void main(String[] args) {
@@ -167,19 +171,48 @@ public class Cliente {
                 outControl.writeUTF(comandos[1]);
                 outControl.writeLong(archivo.length());
                 outControl.writeUTF("END");
+
                 System.out.println("Enviando archivo: " + archivo.getAbsolutePath());
+
                 FileInputStream fis = new FileInputStream(archivo);
                 BufferedInputStream bis = new BufferedInputStream(fis);
+
                 byte[] buffer = new byte[1024];
                 int leidos;
                 while ((leidos = bis.read(buffer)) != -1) {
                     outDatos.write(buffer, 0, leidos);
                 }
+
                 bis.close();
                 fis.close();
+
                 System.out.println("Archivo enviado.");
+            } else if (archivo.exists() && archivo.isDirectory()) {
+                outControl.writeUTF(comandos[0]);
+                outControl.writeUTF(comandos[1]+".zip");
+                File zipFile = comprimirCarpeta(archivo);
+                outControl.writeLong(zipFile.length());
+                outControl.writeUTF("END");
+
+                System.out.println("Enviando ZIP: " + zipFile.getAbsolutePath());
+
+                FileInputStream fis = new FileInputStream(zipFile);
+                BufferedInputStream bis = new BufferedInputStream(fis);
+
+                byte[] buffer = new byte[1024];
+                int leidos;
+                while ((leidos = bis.read(buffer)) != -1) {
+                    outDatos.write(buffer, 0, leidos);
+                }
+
+                bis.close();
+                fis.close();
+
+                System.out.println("Archivo ZIP enviado.");
+                zipFile.delete();
+
             } else {
-                System.out.println("El archivo no existe o no es válido.");
+                System.out.println("El archivo o directorio no existe o no es válido.");
             }
         } catch (IOException e) {
             System.err.println("Error al enviar el archivo: " + e.getMessage());
@@ -217,6 +250,38 @@ public class Cliente {
 
         }catch(IOException e){
 
+        }
+    }
+
+    private static File comprimirCarpeta(File carpeta) throws IOException {
+        File zipFile = new File(carpeta.getParent(), carpeta.getName() + ".zip");
+        try (FileOutputStream fos = new FileOutputStream(zipFile);
+             ZipOutputStream zos = new ZipOutputStream(fos)) {
+            agregarArchivosAlZip(carpeta, carpeta.getName(), zos);
+        }
+        return zipFile;
+    }
+
+    private static void agregarArchivosAlZip(File archivo, String nombreBase, ZipOutputStream zos) throws IOException {
+        if (archivo.isDirectory()) {
+            File[] archivos = archivo.listFiles();
+            if (archivos != null) {
+                for (File file : archivos) {
+                    agregarArchivosAlZip(file, nombreBase + "/" + file.getName(), zos);
+                }
+            }
+        } else {
+            try (FileInputStream fis = new FileInputStream(archivo);
+                 BufferedInputStream bis = new BufferedInputStream(fis)) {
+                ZipEntry zipEntry = new ZipEntry(nombreBase);
+                zos.putNextEntry(zipEntry);
+                byte[] buffer = new byte[1024];
+                int bytesLeidos;
+                while ((bytesLeidos = bis.read(buffer)) != -1) {
+                    zos.write(buffer, 0, bytesLeidos);
+                }
+                zos.closeEntry();
+            }
         }
     }
 
