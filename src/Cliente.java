@@ -60,7 +60,7 @@ public class Cliente {
                             if (comandos.length > 1){ // Verifica si el comando recibió el resto de argumentos
                                 directorio = cambiarDirectorio(directorio, comandos[1]); // Actualizar el directorio
                             }else{
-                                System.out.println("Error, usa el comando así: cdc <directorio> o cdc ..");
+                                System.out.println("Sintáxis esperada: cdc <directorio> o cdc ..");
                             }
                             break;
                         case "upld":
@@ -68,6 +68,41 @@ public class Cliente {
                             break;
                         case "dwld":
                             recibirArchivo(outControl, inControl, inDatos, comandos, directorio);
+                            break;
+                        case "rnmec":
+                            if (comandos.length > 1){
+                                renombrarArchivo(comandos[1], directorio, in);
+                            }else{
+                                System.out.println("Sintáxis esperada: rnmec <directorio o archivo>");
+                            }
+                            break;
+                        case "rnmes":
+                            if (comandos.length > 1){
+                                outControl.writeUTF(comandos[0]);
+                                outControl.writeUTF(comandos[1]);
+                                System.out.println("Ingrese el nombre nuevo: ");
+                                String nombre = in.nextLine();
+                                outControl.writeUTF(nombre);
+                                System.out.println(inControl.readUTF());
+                            }else{
+                                System.out.println("Sintáxis esperada: rnmes <directorio o archivo>");
+                            }
+                            break;
+                        case "rmc":
+                            if (comandos.length > 1){
+                                borrar(comandos[1], directorio);
+                            }else{
+                                System.out.println("Sintáxis esperada: rmdirc <directorio>");
+                            }
+                            break;
+                        case "rms":
+                            if (comandos.length > 1){
+                                outControl.writeUTF(comandos[0]);
+                                outControl.writeUTF(comandos[1]);
+                                System.out.println(inControl.readUTF());
+                            }else {
+                                System.out.println("Sintáxis esperada: rms <directorio o archivo>");
+                            }
                             break;
                         default: //Comandos del servidor
                             outControl.writeUTF(comando);
@@ -100,19 +135,19 @@ public class Cliente {
         System.out.println("lsc: Listar archivos del cliente"); // listo (cliente)
         System.out.println("lss: Listar archivos del servidor"); // listo (servidor)
         System.out.println("pwdc: Mostrar directorio actual del cliente"); // listo (cliente)
-        System.out.println("pwds: Mostrar directorio actual del servidor"); // (servidor)
+        System.out.println("pwds: Mostrar directorio actual del servidor"); // (servidor) todo Patiño
         System.out.println("cdc: Cambiar directorio en el cliente"); // listo (cliente)
-        System.out.println("cds: Cambiar directorio en el servidor"); // (servidor)
-        System.out.println("dwld: Descargar archivo del servidor");// (servidor)
+        System.out.println("cds: Cambiar directorio en el servidor"); // (servidor) todo Patiño
+        System.out.println("dwld: Descargar archivo del servidor");// listo (servidor)
         System.out.println("upld: Subir archivo al servidor"); // listo (cliente)
-        System.out.println("mkfiles: Crear archivo en el servidor"); // (servidor)
-        System.out.println("mkfilec: Crear archivo en el cliente"); // (cliente)
-        System.out.println("rmfiles: Eliminar archivo en el servidor"); // (servidor)
-        System.out.println("rmfilec: Eliminar archivo en el cliente"); // (cliente)
-        System.out.println("mkdirs: Crear directorio en el servidor"); // (servidor)
-        System.out.println("mkdirc: Crear directorio en el cliente"); // (cliente)
-        System.out.println("rmdirs: Eliminar directorio en el servidor"); // (servidor)
-        System.out.println("rmdirc: Eliminar directorio en el cliente"); // (cliente)
+        System.out.println("mkfiles: Crear archivo en el servidor"); // (servidor) todo Patiño
+        System.out.println("mkfilec: Crear archivo en el cliente"); // (cliente) todo Patiño
+        System.out.println("mkdirs: Crear directorio en el servidor"); // (servidor) todo Patiño
+        System.out.println("mkdirc: Crear directorio en el cliente"); // (cliente) todo Patiño
+        System.out.println("rms: Eliminar archivo o directorio en el servidor"); // listo (servidor)
+        System.out.println("rmc: Eliminar archivo o directorio en el cliente"); // listo (cliente)
+        System.out.println("rnmes: Renombrar archivo o directorio en el servidor"); // listo (servidor)
+        System.out.println("rnmec: Renombrar archivo o directorio en el cliente"); // listo (cliente)
         System.out.println("exit: Salir de la aplicación"); //listo
     }
 
@@ -224,7 +259,7 @@ public class Cliente {
             outControl.writeUTF(comandos[0]);
             outControl.writeUTF(comandos[1]);
 
-            File file = new File(ruta, comandos[1]);
+            File file = new File(ruta, comandos[1] + ".zip");
 
             long tamanoArchivo = inControl.readLong();
             System.out.println("Tamaño del archivo: " + tamanoArchivo);
@@ -283,6 +318,57 @@ public class Cliente {
                 zos.closeEntry();
             }
         }
+    }
+
+    private static void renombrarArchivo(String nombreArchivo, File directorio, Scanner in){
+
+        File archivo = new File(directorio, nombreArchivo);
+
+        if (archivo.exists()) {
+            System.out.println("Ingrese el nombre nuevo: ");
+            String nuevoNombre = in.nextLine();
+            File newFile = new File(directorio, nuevoNombre);
+            if (archivo.renameTo(newFile)) {
+                System.out.println("Renombrado exitosamente");
+            }else{
+                System.out.println("Error al renombrar");
+            }
+        }else{
+            System.out.println("El archivo/directorio no existe en la ubicación actual");
+        }
+    }
+
+    private static void borrar(String nombre, File directorio){
+        File fichero = new File(directorio, nombre);
+        if (fichero.exists()) {
+            if(fichero.isDirectory()){
+                if (eliminarRecursivo(fichero)) {
+                    System.out.println("Eliminado exitosamente");
+                } else {
+                    System.out.println("Error al eliminar");
+                }
+            }else if(fichero.isFile()){
+                if (fichero.delete()) {
+                    System.out.println("Archivo eliminado exitosamente");
+                }else{
+                    System.out.println("Error al eliminar el archivo");
+                }
+            }else {
+                System.out.println("El archivo/directorio no es válido");
+            }
+
+        }else{
+            System.out.println("El directorio no existe en la ubicación actual");
+        }
+    }
+
+    private static boolean eliminarRecursivo(File archivo) {
+        if (archivo.isDirectory()) {
+            for (File subArchivo : archivo.listFiles()) {
+                eliminarRecursivo(subArchivo); // Llamada recursiva para cada archivo/subdirectorio
+            }
+        }
+        return archivo.delete(); // Una vez vacío, elimina el directorio
     }
 
 }
