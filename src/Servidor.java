@@ -74,6 +74,12 @@ public class Servidor {
                     case "rnmes":
                         renombrarArchivo(inControl, outControl, directorio);
                         break;
+                    case "pwds":
+                        mostrarDirectorioActual(directorio, outControl);
+                        break;
+                    case "cds":
+                        directorio = cambiarDirectorio(directorio, outControl, inControl);
+                        break;
                     default:
                         outControl.writeUTF("Comando no reconocido");
                         outControl.writeUTF("END");
@@ -290,6 +296,48 @@ public class Servidor {
             }
         }
         return archivo.delete(); // Una vez vacío, elimina el directorio
+    }
+
+    private static void mostrarDirectorioActual(File Directorio, DataOutputStream outControl) {
+        try {
+            outControl.writeUTF("El directorio actual del servidor es: " + Directorio.getAbsolutePath());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static File cambiarDirectorio(File Directorio, DataOutputStream outControl, DataInputStream inControl){
+        try {
+            File nuevoDir; // Crear la ruta del nuevo directorio
+
+            String nuevoDirectorio = inControl.readUTF();
+
+            if (nuevoDirectorio.equals("..")) {
+                // Moverse al directorio padre
+                nuevoDir = Directorio.getParentFile();
+
+                if (nuevoDir != null && nuevoDir.exists()) {
+                    outControl.writeUTF("Moviéndose al directorio padre: " + nuevoDir.getAbsolutePath());
+                    return nuevoDir;
+                } else {
+                    outControl.writeUTF("Ya estás en el directorio raíz, no puedes subir más.");
+                    return Directorio;
+                }
+            } else {
+                // Moverse a un subdirectorio
+                nuevoDir = new File(Directorio, nuevoDirectorio);
+
+                if (nuevoDir.exists() && nuevoDir.isDirectory()) {
+                    outControl.writeUTF("Cambiando al directorio: " + nuevoDir.getAbsolutePath());
+                    return nuevoDir;
+                } else {
+                    outControl.writeUTF("Error: El directorio no existe.");
+                    return Directorio;
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }
