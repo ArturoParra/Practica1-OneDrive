@@ -28,7 +28,7 @@ public class Servidor {
                 procesarComandos(socketControl, socketDatos);
             }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            //throw new RuntimeException(e);
         }
     }
 
@@ -76,7 +76,7 @@ public class Servidor {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            //e.printStackTrace();
         }
     }
 
