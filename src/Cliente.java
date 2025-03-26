@@ -104,6 +104,20 @@ public class Cliente {
                                 System.out.println("Sintáxis esperada: rms <directorio o archivo>");
                             }
                             break;
+                        case "pwds":
+                            outControl.writeUTF(comandos[0]);
+                            String respuesta = inControl.readUTF();
+                            System.out.println(respuesta);
+                            break;
+                        case "cds":
+                            if (comandos.length > 1) {
+                                outControl.writeUTF(comandos[0]);
+                                outControl.writeUTF(comandos[1]);
+                                System.out.println(inControl.readUTF());
+                            }else{
+                                System.out.println("Sintáxis esperada: cds <directorio o archivo>");
+                            }
+                            break;
                         default: //Comandos del servidor
                             outControl.writeUTF(comando);
                             String respuesta2;
@@ -135,9 +149,9 @@ public class Cliente {
         System.out.println("lsc: Listar archivos del cliente"); // listo (cliente)
         System.out.println("lss: Listar archivos del servidor"); // listo (servidor)
         System.out.println("pwdc: Mostrar directorio actual del cliente"); // listo (cliente)
-        System.out.println("pwds: Mostrar directorio actual del servidor"); // (servidor) todo Patiño
+        System.out.println("pwds: Mostrar directorio actual del servidor"); // listo (servidor)
         System.out.println("cdc: Cambiar directorio en el cliente"); // listo (cliente)
-        System.out.println("cds: Cambiar directorio en el servidor"); // (servidor) todo Patiño
+        System.out.println("cds: Cambiar directorio en el servidor"); // listo (servidor)
         System.out.println("dwld: Descargar archivo del servidor");// listo (servidor)
         System.out.println("upld: Subir archivo al servidor"); // listo (cliente)
         System.out.println("mkfiles: Crear archivo en el servidor"); // (servidor) todo Patiño
@@ -164,10 +178,6 @@ public class Cliente {
         }else{
             System.out.println("El directorio está vacío.");
         }
-    }
-
-    private static void mostrarDirectorioActual(File Directorio){
-        System.out.println("El directorio actual es: " + Directorio.getAbsolutePath());
     }
 
     private static File cambiarDirectorio(File Directorio, String nuevoDirectorio){
@@ -369,6 +379,10 @@ public class Cliente {
             }
         }
         return archivo.delete(); // Una vez vacío, elimina el directorio
+    }
+
+    private static void mostrarDirectorioActual(File Directorio){
+        System.out.println("El directorio actual del cliente es: " + Directorio.getAbsolutePath());
     }
 
 }
