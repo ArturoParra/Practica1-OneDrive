@@ -8,6 +8,11 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import java.util.zip.ZipInputStream;
 
+import net.lingala.zip4j.ZipFile;
+import net.lingala.zip4j.exception.ZipException;
+import net.lingala.zip4j.model.ZipParameters;
+import java.util.Collections;
+
 public class Servidor {
     public static void main(String[] args) {
         try {
@@ -170,14 +175,13 @@ public class Servidor {
     }
 
     private static void recibirArchivo(DataInputStream inControl, DataInputStream inDatos, File directorio) {
-        try{
+        try {
             String nombreArchivo = inControl.readUTF();
             System.out.println("Recibiendo archivo: " + nombreArchivo);
 
             File file = new File(directorio, nombreArchivo);
-
             long tamanoArchivo = inControl.readLong();
-            System.out.println("Tamaño del archivo: " + tamanoArchivo);
+            System.out.println("Tamaño del archivo: " + tamanoArchivo + " bytes");
 
             FileOutputStream fos = new FileOutputStream(file);
             BufferedOutputStream bos = new BufferedOutputStream(fos);
@@ -186,7 +190,7 @@ public class Servidor {
             int bytesLeidos;
             long bytesRestantes = tamanoArchivo;
 
-            while (bytesRestantes > 0 && (bytesLeidos = inDatos.read(buffer, 0, (int)Math.min(buffer.length, bytesRestantes))) != -1) {
+            while (bytesRestantes > 0 && (bytesLeidos = inDatos.read(buffer, 0, (int) Math.min(buffer.length, bytesRestantes))) != -1) {
                 bos.write(buffer, 0, bytesLeidos);
                 bytesRestantes -= bytesLeidos;
             }
@@ -194,42 +198,72 @@ public class Servidor {
             bos.close();
             fos.close();
 
-            System.out.println("Archivo recibido exitosamente.");
+            // Si es un ZIP, descomprimirlo
+            if (nombreArchivo.endsWith(".zip")) {
+                descomprimirArchivo(file.getCanonicalPath(), directorio.getCanonicalPath());
+                file.delete();
+            }
 
-        }catch(IOException e){
-
+        } catch (IOException e) {
+            System.err.println(" Error al recibir el archivo: " + e.getMessage());
+            e.printStackTrace();
         }
     }
+
 
     private static File comprimirCarpeta(File carpeta) throws IOException {
         File zipFile = new File(carpeta.getParent(), carpeta.getName() + ".zip");
-        try (FileOutputStream fos = new FileOutputStream(zipFile);
-             ZipOutputStream zos = new ZipOutputStream(fos)) {
-            agregarArchivosAlZip(carpeta, carpeta.getName(), zos);
+
+        try {
+            ZipFile zip = new ZipFile(zipFile);
+            zip.addFolder(carpeta, new ZipParameters());
+            System.out.println("Carpeta comprimida en: " + zipFile.getAbsolutePath());
+        } catch (Exception e) {
+            System.err.println("Error al comprimir la carpeta: " + e.getMessage());
+            throw new IOException("No se pudo comprimir la carpeta.");
         }
+
         return zipFile;
     }
 
-    private static void agregarArchivosAlZip(File archivo, String nombreBase, ZipOutputStream zos) throws IOException {
-        if (archivo.isDirectory()) {
-            File[] archivos = archivo.listFiles();
-            if (archivos != null) {
-                for (File file : archivos) {
-                    agregarArchivosAlZip(file, nombreBase + "/" + file.getName(), zos);
+    private static void descomprimirArchivo(String zipPath, String destinoPath) {
+        try {
+            File zipFile = new File(zipPath);
+            File destino = new File(destinoPath);
+
+            // Verificar que el ZIP existe antes de extraer
+            if (!zipFile.exists()) {
+                System.err.println("Error: El archivo ZIP no existe: " + zipFile.getAbsolutePath());
+                return;
+            }
+
+            // Crear la carpeta de destino si no existe
+            if (!destino.exists()) {
+                boolean creado = destino.mkdirs();
+                if (creado) {
+                    System.out.println("Carpeta destino creada: " + destinoPath);
+                } else {
+                    System.err.println("Error: No se pudo crear la carpeta destino.");
+                    return;
                 }
             }
-        } else {
-            try (FileInputStream fis = new FileInputStream(archivo);
-                 BufferedInputStream bis = new BufferedInputStream(fis)) {
-                ZipEntry zipEntry = new ZipEntry(nombreBase);
-                zos.putNextEntry(zipEntry);
-                byte[] buffer = new byte[1024];
-                int bytesLeidos;
-                while ((bytesLeidos = bis.read(buffer)) != -1) {
-                    zos.write(buffer, 0, bytesLeidos);
-                }
-                zos.closeEntry();
+
+            // Descomprimir
+            ZipFile zip = new ZipFile(zipFile);
+            zip.extractAll(destinoPath);
+            System.out.println("Archivo ZIP extraído correctamente en: " + destinoPath);
+
+            // Verificar si la extracción tuvo éxito
+            File[] archivos = destino.listFiles();
+            if (archivos != null && archivos.length > 0) {
+                System.out.println("Archivos extraídos");
+            } else {
+                System.err.println("No se encontraron archivos extraídos.");
             }
+
+        } catch (ZipException e) {
+            System.err.println("Error al extraer el ZIP: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
