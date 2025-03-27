@@ -62,12 +62,6 @@ public class Servidor {
                     case "upld":
                         recibirArchivo(inControl, inDatos, directorio);
                         break;
-                    case "mkfiles":
-                        outControl.writeUTF("Creando archivo...");
-                        break;
-                    case "mkdirs":
-                        outControl.writeUTF("Creando directorio...");
-                        break;
                     case "rms":
                         borrar(inControl, outControl, directorio);
                         break;
@@ -79,6 +73,12 @@ public class Servidor {
                         break;
                     case "cds":
                         directorio = cambiarDirectorio(directorio, outControl, inControl);
+                        break;
+                    case "mkfiles":
+                        crearArchivo(inControl, outControl, directorio);
+                        break;
+                    case "mkdirs":
+                        crearDirectorio(inControl, outControl, directorio);
                         break;
                     default:
                         outControl.writeUTF("Comando no reconocido");
@@ -337,6 +337,42 @@ public class Servidor {
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private static void crearArchivo(DataInputStream inControl, DataOutputStream outControl, File directorio){
+        try {
+            String nombreArchivo = inControl.readUTF();
+            File archivo = new File(directorio, nombreArchivo);
+            if (archivo.exists()) {
+                outControl.writeUTF("El archivo ya existe.");
+            } else {
+                if (archivo.createNewFile()) {
+                    outControl.writeUTF("Archivo creado exitosamente: " + archivo.getAbsolutePath());
+                } else {
+                    outControl.writeUTF("No se pudo crear el archivo.");
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error al crear el archivo: " + e.getMessage());
+        }
+    }
+
+    private static void crearDirectorio(DataInputStream inControl, DataOutputStream outControl, File directorio){
+        try {
+            String nombreDirectorio = inControl.readUTF();
+            File nuevoDirectorio = new File(directorio, nombreDirectorio);
+            if(nuevoDirectorio.exists()){
+                outControl.writeUTF("El directorio ya existe.");
+            } else {
+                if(nuevoDirectorio.mkdir()){
+                    outControl.writeUTF("Directorio creado exitosamente: " + nuevoDirectorio.getAbsolutePath());
+                } else {
+                    outControl.writeUTF("No se pudo crear el directorio.");
+                }
+            }
+        }catch (Exception e){
+            System.err.println("Error al crear el directorio: " + e.getMessage());
         }
     }
 

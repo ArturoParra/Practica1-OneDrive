@@ -88,6 +88,24 @@ public class Cliente {
                                 System.out.println("Sintáxis esperada: rnmes <directorio o archivo>");
                             }
                             break;
+                        case "mkfiles":
+                            if(comandos.length >1){
+                                outControl.writeUTF(comandos[0]);
+                                outControl.writeUTF(comandos[1]);
+                                System.out.println(inControl.readUTF());
+                            }else{
+                                System.out.println("Sintáxis esperada: mkfiles <archivo>");
+                            }
+                            break;
+                        case "mkdirs":
+                            if(comandos.length >1){
+                                outControl.writeUTF(comandos[0]);
+                                outControl.writeUTF(comandos[1]);
+                                System.out.println(inControl.readUTF());
+                            }else{
+                                System.out.println("Sintáxis esperada: mkdirs <directorio>");
+                            }
+                            break;
                         case "rmc":
                             if (comandos.length > 1){
                                 borrar(comandos[1], directorio);
@@ -117,6 +135,12 @@ public class Cliente {
                             }else{
                                 System.out.println("Sintáxis esperada: cds <directorio o archivo>");
                             }
+                            break;
+                        case "mkfilec":
+                            crearArchivo(directorio, comandos[1]);
+                            break;
+                        case "mkdirc":
+                            crearDirectorio(directorio, comandos[1]);
                             break;
                         default: //Comandos del servidor
                             outControl.writeUTF(comando);
@@ -154,10 +178,10 @@ public class Cliente {
         System.out.println("cds: Cambiar directorio en el servidor"); // listo (servidor)
         System.out.println("dwld: Descargar archivo del servidor");// listo (servidor)
         System.out.println("upld: Subir archivo al servidor"); // listo (cliente)
-        System.out.println("mkfiles: Crear archivo en el servidor"); // (servidor) todo Patiño
-        System.out.println("mkfilec: Crear archivo en el cliente"); // (cliente) todo Patiño
+        System.out.println("mkfiles: Crear archivo en el servidor"); // Listo (servidor)
+        System.out.println("mkfilec: Crear archivo en el cliente"); // listo (cliente)
         System.out.println("mkdirs: Crear directorio en el servidor"); // (servidor) todo Patiño
-        System.out.println("mkdirc: Crear directorio en el cliente"); // (cliente) todo Patiño
+        System.out.println("mkdirc: Crear directorio en el cliente"); // Listo (cliente)
         System.out.println("rms: Eliminar archivo o directorio en el servidor"); // listo (servidor)
         System.out.println("rmc: Eliminar archivo o directorio en el cliente"); // listo (cliente)
         System.out.println("rnmes: Renombrar archivo o directorio en el servidor"); // listo (servidor)
@@ -383,6 +407,40 @@ public class Cliente {
 
     private static void mostrarDirectorioActual(File Directorio){
         System.out.println("El directorio actual del cliente es: " + Directorio.getAbsolutePath());
+    }
+
+    private static void crearArchivo(File directorio, String nombreArchivo){
+        try {
+            File archivo = new File(directorio, nombreArchivo);
+            if (archivo.exists()) {
+                System.out.println("El archivo ya existe.");
+            } else {
+                if (archivo.createNewFile()) {
+                    System.out.println("Archivo creado exitosamente: " + archivo.getAbsolutePath());
+                } else {
+                    System.out.println("No se pudo crear el archivo.");
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Error al crear el archivo: " + e.getMessage());
+        }
+    }
+
+    private static void crearDirectorio(File directorio, String nombreDirectorio){
+        try {
+            File nuevoDirectorio = new File(directorio, nombreDirectorio);
+            if(nuevoDirectorio.exists()){
+                System.out.println("El directorio ya existe.");
+            } else {
+                if(nuevoDirectorio.mkdir()){
+                    System.out.println("Directorio creado exitosamente: " + nuevoDirectorio.getAbsolutePath());
+                } else {
+                    System.out.println("No se pudo crear el directorio.");
+                }
+            }
+        }catch (Exception e){
+            System.err.println("Error al crear el directorio: " + e.getMessage());
+        }
     }
 
 }
