@@ -296,7 +296,18 @@ public class Cliente {
             outControl.writeUTF(comandos[0]);
             outControl.writeUTF(comandos[1]);
 
-            File file = new File(ruta, comandos[1] + ".zip");
+            String respuestatipo = inControl.readUTF();
+
+            File file = null;
+
+            if(respuestatipo.equals("FILE")){
+                file = new File(ruta, comandos[1]);
+            }else if (respuestatipo.equals("DIRECTORIO")){
+                file = new File(ruta, comandos[1] + ".zip");
+            }else{
+                System.out.println("Error al recibir el archivo: archivo no válido");
+                return;
+            }
 
             long tamanoArchivo = inControl.readLong();
             System.out.println("Tamaño del archivo: " + tamanoArchivo);
@@ -319,7 +330,7 @@ public class Cliente {
 
             System.out.println("Archivo recibido exitosamente.");
 
-            // Si es un ZIP, descomprimirlo
+           //  Si es un ZIP, descomprimirlo
             if (file.getName().endsWith(".zip")) {
                 descomprimirArchivo(file.getCanonicalPath(), ruta.getCanonicalPath());
                 file.delete();
