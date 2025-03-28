@@ -1,17 +1,9 @@
-
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.io.*;
-import java.net.Socket;
-import java.util.Scanner;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
-import java.util.zip.ZipInputStream;
-
+import java.net.*; //Manejo de sockets
+import java.io.*; //  Entrada y salida de datos, manipulación de archivos
+//Manipulación de archivos ZIP.
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.model.ZipParameters;
-import java.util.Collections;
 
 public class Servidor {
     public static void main(String[] args) {
@@ -46,7 +38,6 @@ public class Servidor {
 
     private static void procesarComandos(Socket socketControl, Socket socketDatos, File directorio) {
         try{
-
             DataInputStream inDatos = new DataInputStream(socketDatos.getInputStream());
             DataOutputStream outDatos = new DataOutputStream(socketDatos.getOutputStream());
 
@@ -96,7 +87,6 @@ public class Servidor {
         }
     }
 
-
     private static void listarArchivos(File directorio, DataOutputStream outControl) {
         try {
             if (directorio.exists() && directorio.isDirectory()) {
@@ -109,7 +99,7 @@ public class Servidor {
                             outControl.writeUTF("Archivo: " + elemento.getName());
                         }
                     }
-                }else{
+                } else {
                     outControl.writeUTF("No se encontraron archivos");
                 }
             } else {
@@ -122,8 +112,7 @@ public class Servidor {
     }
 
     private static void enviarArchivo(DataOutputStream outControl, DataInputStream inControl, DataOutputStream outDatos, File directorio) {
-
-        try{
+        try {
             String nombreArchivo = inControl.readUTF();
             System.out.println("Nombre de archivo:" + nombreArchivo);
 
@@ -132,7 +121,6 @@ public class Servidor {
             if (archivo.exists() && archivo.isFile()) {
                 outControl.writeUTF("FILE");
                 outControl.writeLong(archivo.length());
-                //outControl.writeUTF("END");
                 System.out.println("Enviando archivo: " + archivo.getAbsolutePath());
                 FileInputStream fis = new FileInputStream(archivo);
                 BufferedInputStream bis = new BufferedInputStream(fis);
@@ -148,7 +136,6 @@ public class Servidor {
                 outControl.writeUTF("DIRECTORIO");
                 File zipFile = comprimirCarpeta(archivo);
                 outControl.writeLong(zipFile.length());
-                //outControl.writeUTF("END");
 
                 System.out.println("Enviando ZIP: " + zipFile.getAbsolutePath());
 
@@ -166,14 +153,25 @@ public class Servidor {
 
                 System.out.println("Archivo ZIP enviado");
                 zipFile.delete();
-
             } else {
                 outControl.writeUTF("El archivo no existe o no es válido.");
             }
         } catch (IOException e) {
             //System.out.println("Error al enviar el archivo: " + e.getMessage());
         }
+    }
 
+    private static File comprimirCarpeta(File carpeta) throws IOException {
+        File zipFile = new File(carpeta.getParent(), carpeta.getName() + ".zip");
+        try {
+            ZipFile zip = new ZipFile(zipFile);
+            zip.addFolder(carpeta, new ZipParameters());
+            System.out.println("Carpeta comprimida en: " + zipFile.getAbsolutePath());
+        } catch (Exception e) {
+            System.err.println("Error al comprimir la carpeta: " + e.getMessage());
+            throw new IOException("No se pudo comprimir la carpeta.");
+        }
+        return zipFile;
     }
 
     private static void recibirArchivo(DataInputStream inControl, DataInputStream inDatos, File directorio) {
@@ -212,35 +210,17 @@ public class Servidor {
         }
     }
 
-
-    private static File comprimirCarpeta(File carpeta) throws IOException {
-        File zipFile = new File(carpeta.getParent(), carpeta.getName() + ".zip");
-
-        try {
-            ZipFile zip = new ZipFile(zipFile);
-            zip.addFolder(carpeta, new ZipParameters());
-            System.out.println("Carpeta comprimida en: " + zipFile.getAbsolutePath());
-        } catch (Exception e) {
-            System.err.println("Error al comprimir la carpeta: " + e.getMessage());
-            throw new IOException("No se pudo comprimir la carpeta.");
-        }
-
-        return zipFile;
-    }
-
     private static void descomprimirArchivo(String zipPath, String destinoPath) {
         try {
             File zipFile = new File(zipPath);
             File destino = new File(destinoPath);
 
-            // Verificar que el ZIP existe antes de extraer
-            if (!zipFile.exists()) {
+            if (!zipFile.exists()) { // Verificar que el ZIP existe antes de extraer
                 System.err.println("Error: El archivo ZIP no existe: " + zipFile.getAbsolutePath());
                 return;
             }
 
-            // Crear la carpeta de destino si no existe
-            if (!destino.exists()) {
+            if (!destino.exists()) { // Crear la carpeta de destino si no existe
                 boolean creado = destino.mkdirs();
                 if (creado) {
                     System.out.println("Carpeta destino creada: " + destinoPath);
@@ -250,13 +230,11 @@ public class Servidor {
                 }
             }
 
-            // Descomprimir
-            ZipFile zip = new ZipFile(zipFile);
+            ZipFile zip = new ZipFile(zipFile); // Descomprimir
             zip.extractAll(destinoPath);
             System.out.println("Archivo ZIP extraído correctamente en: " + destinoPath);
 
-            // Verificar si la extracción tuvo éxito
-            File[] archivos = destino.listFiles();
+            File[] archivos = destino.listFiles(); // Verificar si la extracción tuvo éxito
             if (archivos != null && archivos.length > 0) {
                 System.out.println("Archivos extraídos");
             } else {
@@ -266,33 +244,6 @@ public class Servidor {
         } catch (ZipException e) {
             System.err.println("Error al extraer el ZIP: " + e.getMessage());
             e.printStackTrace();
-        }
-    }
-
-    private static void renombrarArchivo( DataInputStream inControl, DataOutputStream outControl, File directorio) {
-
-        try {
-            String nombreArchivo = inControl.readUTF();
-            String nombreNuevo = inControl.readUTF();
-            File archivo = new File(directorio, nombreArchivo);
-
-
-            System.out.println("Archivo a renombrar: " + archivo.getAbsolutePath());
-            System.out.println("Nuevo nombre: " + nombreNuevo);
-
-            if (archivo.exists()) {
-                System.out.println("Ingrese el nombre nuevo: ");
-                File newFile = new File(directorio, nombreNuevo);
-                if (archivo.renameTo(newFile)) {
-                    outControl.writeUTF("Renombrado exitosamente");
-                }else{
-                    outControl.writeUTF("Error al renombrar");
-                }
-            }else{
-                outControl.writeUTF("El archivo/directorio no existe en la ubicación actual");
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -307,17 +258,17 @@ public class Servidor {
                     } else {
                         outControl.writeUTF("Error al eliminar");
                     }
-                }else if(fichero.isFile()){
+                } else if(fichero.isFile()) {
                     if (fichero.delete()) {
                         outControl.writeUTF("Archivo eliminado exitosamente");
-                    }else{
+                    } else {
                         outControl.writeUTF("Error al eliminar el archivo");
                     }
-                }else {
+                } else {
                     outControl.writeUTF("El archivo/directorio no es válido");
                 }
 
-            }else{
+            } else {
                 outControl.writeUTF("El directorio no existe en la ubicación actual");
             }
         } catch (IOException e) {
@@ -332,6 +283,31 @@ public class Servidor {
             }
         }
         return archivo.delete(); // Una vez vacío, elimina el directorio
+    }
+
+    private static void renombrarArchivo( DataInputStream inControl, DataOutputStream outControl, File directorio) {
+        try {
+            String nombreArchivo = inControl.readUTF();
+            String nombreNuevo = inControl.readUTF();
+            File archivo = new File(directorio, nombreArchivo);
+
+            System.out.println("Archivo a renombrar: " + archivo.getAbsolutePath());
+            System.out.println("Nuevo nombre: " + nombreNuevo);
+
+            if (archivo.exists()) {
+                System.out.println("Ingrese el nombre nuevo: ");
+                File newFile = new File(directorio, nombreNuevo);
+                if (archivo.renameTo(newFile)) {
+                    outControl.writeUTF("Renombrado exitosamente");
+                } else {
+                    outControl.writeUTF("Error al renombrar");
+                }
+            } else {
+                outControl.writeUTF("El archivo/directorio no existe en la ubicación actual");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static void mostrarDirectorioActual(File Directorio, DataOutputStream outControl) {
@@ -349,8 +325,7 @@ public class Servidor {
             String nuevoDirectorio = inControl.readUTF();
 
             if (nuevoDirectorio.equals("..")) {
-                // Moverse al directorio padre
-                nuevoDir = Directorio.getParentFile();
+                nuevoDir = Directorio.getParentFile(); // Moverse al directorio padre
 
                 if (nuevoDir != null && nuevoDir.exists()) {
                     outControl.writeUTF("Moviéndose al directorio padre: " + nuevoDir.getAbsolutePath());
@@ -360,9 +335,7 @@ public class Servidor {
                     return Directorio;
                 }
             } else {
-                // Moverse a un subdirectorio
-                nuevoDir = new File(Directorio, nuevoDirectorio);
-
+                nuevoDir = new File(Directorio, nuevoDirectorio); // Moverse a un subdirectorio
                 if (nuevoDir.exists() && nuevoDir.isDirectory()) {
                     outControl.writeUTF("Cambiando al directorio: " + nuevoDir.getAbsolutePath());
                     return nuevoDir;
@@ -411,6 +384,5 @@ public class Servidor {
             System.err.println("Error al crear el directorio: " + e.getMessage());
         }
     }
-
 }
 
