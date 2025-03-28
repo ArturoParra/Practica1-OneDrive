@@ -130,8 +130,9 @@ public class Servidor {
             File archivo = new File(directorio, nombreArchivo);
 
             if (archivo.exists() && archivo.isFile()) {
+                outControl.writeUTF("FILE");
                 outControl.writeLong(archivo.length());
-                outControl.writeUTF("END");
+                //outControl.writeUTF("END");
                 System.out.println("Enviando archivo: " + archivo.getAbsolutePath());
                 FileInputStream fis = new FileInputStream(archivo);
                 BufferedInputStream bis = new BufferedInputStream(fis);
@@ -144,9 +145,10 @@ public class Servidor {
                 fis.close();
                 System.out.println("Archivo enviado.");
             } else if (archivo.exists() && archivo.isDirectory()) {
+                outControl.writeUTF("DIRECTORIO");
                 File zipFile = comprimirCarpeta(archivo);
                 outControl.writeLong(zipFile.length());
-                outControl.writeUTF("END");
+                //outControl.writeUTF("END");
 
                 System.out.println("Enviando ZIP: " + zipFile.getAbsolutePath());
 
@@ -166,7 +168,7 @@ public class Servidor {
                 zipFile.delete();
 
             } else {
-                System.out.println("El archivo no existe o no es válido.");
+                outControl.writeUTF("El archivo no existe o no es válido.");
             }
         } catch (IOException e) {
             //System.out.println("Error al enviar el archivo: " + e.getMessage());
